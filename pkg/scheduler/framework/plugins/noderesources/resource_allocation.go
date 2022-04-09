@@ -36,7 +36,7 @@ type resourceAllocationScorer struct {
 	// used to decide whether to use Requested or NonZeroRequested for
 	// cpu and memory.
 	useRequested        bool
-	scorer              func(requested, allocable resourceToValueMap) int64
+	scorer              func(requested, allocatable resourceToValueMap) int64
 	resourceToWeightMap resourceToWeightMap
 }
 
@@ -93,14 +93,14 @@ func (r *resourceAllocationScorer) calculateResourceAllocatableRequest(nodeInfo 
 	}
 	switch resource {
 	case v1.ResourceCPU:
-		return nodeInfo.Allocatable.MilliCPU, (requested.MilliCPU + podRequest)
+		return nodeInfo.Allocatable.MilliCPU, requested.MilliCPU + podRequest
 	case v1.ResourceMemory:
-		return nodeInfo.Allocatable.Memory, (requested.Memory + podRequest)
+		return nodeInfo.Allocatable.Memory, requested.Memory + podRequest
 	case v1.ResourceEphemeralStorage:
-		return nodeInfo.Allocatable.EphemeralStorage, (nodeInfo.Requested.EphemeralStorage + podRequest)
+		return nodeInfo.Allocatable.EphemeralStorage, nodeInfo.Requested.EphemeralStorage + podRequest
 	default:
 		if _, exists := nodeInfo.Allocatable.ScalarResources[resource]; exists {
-			return nodeInfo.Allocatable.ScalarResources[resource], (nodeInfo.Requested.ScalarResources[resource] + podRequest)
+			return nodeInfo.Allocatable.ScalarResources[resource], nodeInfo.Requested.ScalarResources[resource] + podRequest
 		}
 	}
 	klog.V(10).InfoS("Requested resource is omitted for node score calculation", "resourceName", resource)
