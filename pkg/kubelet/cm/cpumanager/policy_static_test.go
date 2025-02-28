@@ -703,6 +703,25 @@ func TestStaticPolicyReuseCPUs(t *testing.T) {
 			},
 			expCSetAfterAlloc:  cpuset.New(2, 3, 6, 7),
 			expCSetAfterRemove: cpuset.New(1, 2, 3, 5, 6, 7),
+		}, {
+			staticPolicyTest: staticPolicyTest{
+				description: "SingleSocketHT, DeAllocOneInitContainer, reusableCPUs have not been allocated",
+				topo:        topoSingleSocketHT,
+				pod: makeMultiContainerPod(
+					[]struct{ request, limit string }{
+						{"1000m", "1000m"}}, // 4
+					[]struct{ request, limit string }{
+						{"2000m", "2000m"}}), // 3, 7
+				containerName: "initContainer-0",
+				stAssignments: state.ContainerCPUAssignments{
+					"fakePodUID": map[string]cpuset.CPUSet{
+						"fakeContainerName": cpuset.New(0, 1, 2),
+					},
+				},
+				stDefaultCPUSet: cpuset.New(3, 4, 5, 6, 7),
+			},
+			expCSetAfterAlloc:  cpuset.New(4, 5, 6),
+			expCSetAfterRemove: cpuset.New(4, 5, 6),
 		},
 	}
 
