@@ -400,6 +400,13 @@ func (jm *ControllerV2) updateCronJob(logger klog.Logger, old interface{}, curr 
 			return
 		}
 		now := jm.now()
+        newCJCopy := newCJ.DeepCopy()
+        newCJCopy.Status.LastScheduleTime = nil
+        
+        if _, err := jm.cronJobControl.UpdateStatus(context.Background(), newCJCopy); err != nil {
+            logger.V(2).Info("Unable to update status for cronjob after schedule change", 
+                "cronjob", klog.KObj(newCJ), "err", err)
+        }
 		t := nextScheduleTimeDuration(newCJ, now, sched)
 
 		jm.enqueueControllerAfter(curr, *t)
