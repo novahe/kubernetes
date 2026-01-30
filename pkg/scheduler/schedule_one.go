@@ -469,6 +469,25 @@ func (sched *Scheduler) schedulePod(ctx context.Context, fwk framework.Framework
 
 	sortedPrioritizedNodes := newSortedNodeScores(priorityList)
 	node := sortedPrioritizedNodes.Pop()
+
+	// Analyze and log plugin influence ranking when debug logging is enabled.
+	// This helps identify which plugins have the most impact on scheduling decisions,
+	// useful for tuning plugin weights and understanding pod distribution issues.
+	logger := klog.FromContext(ctx)
+	if logger.V(4).Enabled() && len(priorityList) > 0 {
+		// Determine topK size based on number of nodes (use 10% or at least 3)
+		topKSize := len(priorityList) / 10
+		if topKSize < 3 {
+			topKSize = 3
+		}
+		if topKSize > len(priorityList) {
+			topKSize = len(priorityList)
+		}
+
+		results := analyzePluginInfluence(logger, pod, priorityList, topKSize)
+		logPluginInfluenceRanking(logger, pod, results, topKSize)
+	}
+
 	trace.Step("Prioritizing done")
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.OpportunisticBatching) {
