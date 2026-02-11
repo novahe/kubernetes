@@ -1837,6 +1837,18 @@ func getPhase(logger klog.Logger, pod *v1.Pod, info []v1.ContainerStatus, podIsT
 			if stopped == succeeded {
 				return v1.PodSucceeded
 			}
+			// If RestartAllContainersOnContainerExits is enabled, check if any container could restart
+			// based on the pod-level restart policy (for pods without explicit container restart rules)
+			if utilfeature.DefaultFeatureGate.Enabled(features.RestartAllContainersOnContainerExits) {
+				if spec.RestartPolicy == v1.RestartPolicyAlways {
+					// All containers are in the process of restarting
+					return v1.PodRunning
+				}
+				if spec.RestartPolicy == v1.RestartPolicyOnFailure && stopped != succeeded {
+					// At least one container failed with OnFailure policy
+					return v1.PodRunning
+				}
+			}
 			return v1.PodFailed
 		}
 		if spec.RestartPolicy == v1.RestartPolicyAlways {
